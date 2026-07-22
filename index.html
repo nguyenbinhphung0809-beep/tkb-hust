@@ -5,7 +5,7 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Soạn thời khóa biểu HUST - Phiên bản Đỏ Bách Khoa</title>
-  <meta name="description" content="Tool soạn thời biểu tự động HUST. Giúp bạn có được thời khóa biểu phù hợp với bản thân chỉ trong vài giây.">
+  <meta name="description" content="Tool soạn thời biểu tự động HUST.">
   <link rel="icon" href="./static/favicon.ico">
   
   <!-- THEME BÁCH KHOA (HUST RED & GOLD) -->
@@ -102,7 +102,7 @@
         document.body.removeChild(link);
     }
 
-    // 3. COPY MÃ TKB THẬT (TỰ ĐỘNG BẮT MÃ LỚP 173054, 174172...)
+    // 3. COPY MÃ TKB THẬT
     function generateShareCode() {
         let classIds = getActiveScheduleData();
 
@@ -146,6 +146,7 @@
         } catch (e) {
             alert("Mã TKB bạn mày gửi bị lỗi hoặc không đúng định dạng!");
         }
+    }
   </script>
 
   <script src="u48.js"></script>
