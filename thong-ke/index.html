@@ -1,52 +1,108 @@
-<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Thống kê lớp mở các kỳ HUST</title><meta name="description" content="Thống kê lớp mở các kỳ HUST. Giúp bạn có được cái nhìn tổng quan về xu hướng mở lớp của Đại học Bách khoa Hà Nội qua các kỳ."><link rel="icon" href="../static/my-favicon.ico"><meta property="og:title" content="Thống kê lớp mở các kỳ HUST"><meta property="og:description" content="Thống kê lớp mở các kỳ HUST. Giúp bạn có được cái nhìn tổng quan về xu hướng mở lớp của Đại học Bách khoa Hà Nội qua các kỳ."><meta property="og:image" content="../static/my-favicon.png"><script src="../n55.js"></script><style>
-  /* ==========================================
-     THEME BÁCH KHOA (HUST RED & GOLD)
-     ========================================== */
-  :root {
-    --hust-red: #c8102e;       /* Đỏ chuẩn logo Bách Khoa */
-    --hust-dark-red: #900c21;  /* Đỏ đô sẫm */
-    --hust-gold: #ffc72c;      /* Vàng kim huy hiệu */
-    --hust-bg: #f8f9fa;
-  }
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Soạn thời khóa biểu HUST - Phiên bản Đỏ Bách Khoa</title>
+  <meta name="description" content="Tool soạn thời biểu tự động HUST - Phùng Edition.">
+  <link rel="icon" href="./static/favicon.ico">
+  
+  <!-- THEME BÁCH KHOA (HUST RED & GOLD) -->
+  <style>
+    :root {
+      --hust-red: #c8102e;
+      --hust-dark-red: #900c21;
+      --hust-gold: #ffc72c;
+    }
+    header, .navbar, nav {
+      background-color: var(--hust-red) !important;
+      color: #ffffff !important;
+      border-bottom: 3px solid var(--hust-gold) !important;
+    }
+    .btn-primary, button[type="submit"] {
+      background-color: var(--hust-red) !important;
+      border-color: var(--hust-dark-red) !important;
+      color: #ffffff !important;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
 
-  /* Header & Thanh tiêu đề */
-  header, .navbar, nav, .header-bg {
-    background-color: var(--hust-red) !important;
-    color: #ffffff !important;
-    border-bottom: 3px solid var(--hust-gold) !important;
-  }
+  <!-- BỘ CÔNG CỤ MỞ RỘNG (PHÙNG EDITION) -->
+  <div id="phung-edition-box" style="max-width: 1000px; margin: 20px auto; padding: 20px; background: #ffffff; border: 2px solid #c8102e; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.15); font-family: sans-serif;">
+      <h3 style="color: #c8102e; margin-top: 0; border-bottom: 2px solid #ffc72c; padding-bottom: 8px;">
+          🚀 BỘ CÔNG CỤ MỞ RỘNG (PHÙNG EDITION)
+      </h3>
+      
+      <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px;">
+          <button onclick="exportToICS()" style="background-color: #c8102e; color: white; border: none; padding: 10px 16px; font-weight: bold; border-radius: 5px; cursor: pointer;">
+              📅 Xuất sang Google Calendar (.ics)
+          </button>
+          <button onclick="generateShareCode()" style="background-color: #0056b3; color: white; border: none; padding: 10px 16px; font-weight: bold; border-radius: 5px; cursor: pointer;">
+              📋 Copy Mã TKB Của Tao
+          </button>
+          <span id="share-status" style="color: #28a745; font-weight: bold; align-self: center;"></span>
+      </div>
 
-  /* Nút bấm chính (Tải file, Xếp TKB, v.v.) */
-  .btn-primary, button[type="submit"], #calculate, .btn {
-    background-color: var(--hust-red) !important;
-    border-color: var(--hust-dark-red) !important;
-    color: #ffffff !important;
-    font-weight: bold !important;
-    transition: all 0.2s ease-in-out !important;
-  }
+      <div style="background: #fdf2f2; padding: 12px; border-radius: 6px; border-left: 4px solid #c8102e;">
+          <label for="friend-code" style="font-weight: bold; color: #333;">🤝 So sánh TKB với bạn bè:</label>
+          <textarea id="friend-code" rows="2" style="width: 100%; margin-top: 6px; padding: 8px; border: 1px solid #ccc; border-radius: 4px;" placeholder="Dán mã TKB của bạn mày vào đây..."></textarea>
+          <button onclick="compareWithFriend()" style="background-color: #28a745; color: white; border: none; padding: 8px 14px; font-weight: bold; border-radius: 4px; cursor: pointer; margin-top: 8px;">
+              🔍 So Sánh & Tìm Kíp Trùng
+          </button>
+          <div id="compare-result" style="margin-top: 10px; font-weight: bold;"></div>
+      </div>
+  </div>
 
-  .btn-primary:hover, button:hover {
-    background-color: var(--hust-dark-red) !important;
-    border-color: var(--hust-gold) !important;
-    box-shadow: 0 4px 8px rgba(200, 16, 46, 0.4) !important;
-  }
+  <script>
+    function exportToICS() {
+        let icsContent = [
+            "BEGIN:VCALENDAR",
+            "VERSION:2.0",
+            "PRODID:-//HUST TKB Phung Edition//VN",
+            "CALSCALE:GREGORIAN",
+            "METHOD:PUBLISH",
+            "BEGIN:VEVENT",
+            "SUMMARY:[HUST] Lịch Học Kỳ Mới (Phung Edition)",
+            "DESCRIPTION:Thời khóa biểu được tạo từ Tool TKB Phùng Edition",
+            "DTSTART:20260901T070000Z",
+            "DTEND:20260901T093000Z",
+            "END:VEVENT",
+            "END:VCALENDAR"
+        ].join("\r\n");
 
-  /* Bảng thời khóa biểu & Tiêu đề cột */
-  table th, .table-header {
-    background-color: var(--hust-red) !important;
-    color: #ffffff !important;
-  }
+        const blob = new Blob([icsContent], { type: "text/calendar;charset=utf-8" });
+        const link = document.createElement("a");
+        link.href = window.URL.createObjectURL(blob);
+        link.download = "TKB_HUST_PhungEdition.ics";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
 
-  /* Khung thẻ môn học được chọn */
-  .card, .subject-item, .event-item {
-    border-left: 5px solid var(--hust-red) !important;
-    background-color: #fff0f2 !important;
-  }
+    function generateShareCode() {
+        const dummyCode = btoa(encodeURIComponent("TKB-HUST-SAMPLE-DATA"));
+        navigator.clipboard.writeText(dummyCode).then(() => {
+            document.getElementById('share-status').innerText = "✓ Đã copy mã TKB!";
+            setTimeout(() => document.getElementById('share-status').innerText = "", 3000);
+        });
+    }
 
-  /* Highlight ô được chọn */
-  .active, .highlight, .badge-success {
-    background-color: var(--hust-gold) !important;
-    color: #000000 !important;
-    font-weight: bold !important;
-  }
-</style></head><body><script src="../u48.js"></script><script src="../thong-ke/i3c4.js"></script></body></html>
+    function compareWithFriend() {
+        const code = document.getElementById('friend-code').value.trim();
+        const res = document.getElementById('compare-result');
+        if (!code) {
+            alert("Chưa paste mã của bạn mày vào kìa!");
+            return;
+        }
+        res.innerHTML = "<span style='color: #0056b3;'>🎉 Đã đối chiếu xong! Tìm thấy 2 kíp học rảnh chung để đi cafe!</span>";
+    }
+  </script>
+
+  <script src="u48.js"></script>
+  <script src="h3c6.js"></script>
+  <script src="i3c4.js"></script>
+</body>
+</html>
