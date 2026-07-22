@@ -1,75 +1,70 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Soạn thời khóa biểu HUST - Phiên bản Đỏ Bách Khoa</title>
-  <meta name="description" content="Tool soạn thời biểu tự động HUST.">
-  <link rel="icon" href="./static/favicon.ico">
-  
-  <!-- THEME BÁCH KHOA (HUST RED & GOLD) -->
-  <style>
-    :root {
-      --hust-red: #c8102e;
-      --hust-dark-red: #900c21;
-      --hust-gold: #ffc72c;
-    }
-    .bg-success, [class*="bg-success"], header, .navbar, nav {
-      background-color: var(--hust-red) !important;
-      color: #ffffff !important;
-      border-bottom: 3px solid var(--hust-gold) !important;
-    }
-    .btn-primary, button[type="submit"] {
-      background-color: var(--hust-red) !important;
-      border-color: var(--hust-dark-red) !important;
-      color: #ffffff !important;
-    }
-  </style>
-</head>
-<body>
-  <div id="root"></div>
-
-  <!-- BỘ CÔNG CỤ MỞ RỘNG (PHÙNG EDITION) -->
-  <div id="phung-edition-box" style="max-width: 1000px; margin: 20px auto; padding: 20px; background: #ffffff; border: 2px solid #c8102e; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.15); font-family: sans-serif;">
-      <h3 style="color: #c8102e; margin-top: 0; border-bottom: 2px solid #ffc72c; padding-bottom: 8px;">
-          🚀 BỘ CÔNG CỤ MỞ RỘNG (PHÙNG EDITION)
-      </h3>
-      
-      <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px;">
-          <button onclick="exportToICS()" style="background-color: #c8102e; color: white; border: none; padding: 10px 16px; font-weight: bold; border-radius: 5px; cursor: pointer;">
-              📅 Xuất sang Google Calendar (.ics)
-          </button>
-          <button onclick="generateShareCode()" style="background-color: #0056b3; color: white; border: none; padding: 10px 16px; font-weight: bold; border-radius: 5px; cursor: pointer;">
-              📋 Copy Mã TKB Của Tao
-          </button>
-          <span id="share-status" style="color: #28a745; font-weight: bold; align-self: center;"></span>
-      </div>
-
-      <div style="background: #fdf2f2; padding: 12px; border-radius: 6px; border-left: 4px solid #c8102e;">
-          <label for="friend-code" style="font-weight: bold; color: #333;">🤝 So sánh TKB với bạn bè:</label>
-          <textarea id="friend-code" rows="2" style="width: 100%; margin-top: 6px; padding: 8px; border: 1px solid #ccc; border-radius: 4px;" placeholder="Dán mã TKB của bạn mày vào đây..."></textarea>
-          <button onclick="compareWithFriend()" style="background-color: #28a745; color: white; border: none; padding: 8px 14px; font-weight: bold; border-radius: 4px; cursor: pointer; margin-top: 8px;">
-              🔍 So Sánh & Tìm Kíp Trùng
-          </button>
-          <div id="compare-result" style="margin-top: 10px; font-weight: bold;"></div>
-      </div>
-  </div>
-
-  <script>
-    // 1. QUÉT TẤT CẢ MÃ LỚP 6 CHỮ SỐ ĐANG HIỂN THỊ TRÊN MÀN HÌNH
+<script>
+    // 1. HÀM QUÉT MÃ LỚP RÚT GỌN (DÙNG CHO CHỨC NĂNG COPY & SO SÁNH BẠN BÈ)
     function getActiveScheduleData() {
         let bodyText = document.body.innerText;
         let matches = bodyText.match(/\b\d{6}\b/g) || [];
         return [...new Set(matches)];
     }
 
-    // 2. XUẤT GOOGLE CALENDAR (.ICS) THẬT
-    function exportToICS() {
-        let classIds = getActiveScheduleData();
+    // 2. HÀM BÓC TÁCH CHI TIẾT TKB (THỨ, GIỜ, PHÒNG, TÊN MÔN) DÙNG CHO GOOGLE CALENDAR
+    function parseFullSchedule() {
+        let lines = document.body.innerText.split('\n');
+        let currentDayOffset = 0; // 0: Mon, 1: Tue, ...
+        let parsedEvents = [];
+        
+        // Ngày bắt đầu kỳ học giả định (Thứ 2 tuần đầu kỳ - Ngày 07/09/2026)
+        let baseMonday = new Date(2026, 8, 7); // Tháng 9 là index 8
 
-        if (classIds.length === 0) {
-            alert("Chưa thấy TKB nào trên màn hình cả bro! Thêm môn & bấm xếp TKB trước đã!");
+        lines.forEach(line => {
+            line = line.trim();
+            if (line.includes("Thứ 2")) currentDayOffset = 0;
+            else if (line.includes("Thứ 3")) currentDayOffset = 1;
+            else if (line.includes("Thứ 4")) currentDayOffset = 2;
+            else if (line.includes("Thứ 5")) currentDayOffset = 3;
+            else if (line.includes("Thứ 6")) currentDayOffset = 4;
+            else if (line.includes("Thứ 7")) currentDayOffset = 5;
+
+            // Regex quét dòng TKB chuẩn: 10h15 - 11h45 • D8-502 173054 • Cơ học kỹ thuật II • LT+BT
+            let match = line.match(/(\d{1,2})h(\d{2})\s*-\s*(\d{1,2})h(\d{2})\s*•\s*([^\s]+)\s+(\d{6})\s*•\s*([^•]+)/);
+            if (match) {
+                let startH = match[1].padStart(2, '0');
+                let startM = match[2];
+                let endH = match[3].padStart(2, '0');
+                let endM = match[4];
+                let room = match[5];
+                let classId = match[6];
+                let subject = match[7].trim();
+
+                // Tính ngày học đầu tiên
+                let eventDate = new Date(baseMonday);
+                eventDate.setDate(baseMonday.getDate() + currentDayOffset);
+
+                let yyyy = eventDate.getFullYear();
+                let mm = String(eventDate.getMonth() + 1).padStart(2, '0');
+                let dd = String(eventDate.getDate()).padStart(2, '0');
+
+                let dtStart = `${yyyy}${mm}${dd}T${startH}${startM}00`;
+                let dtEnd = `${yyyy}${mm}${dd}T${endH}${endM}00`;
+
+                parsedEvents.push({
+                    summary: `[HUST] ${subject} (${classId})`,
+                    location: `Phòng ${room}`,
+                    description: `Mã môn/lớp: ${classId} | Lịch học HUST Phùng Edition`,
+                    dtStart: dtStart,
+                    dtEnd: dtEnd
+                });
+            }
+        });
+
+        return parsedEvents;
+    }
+
+    // 3. XUẤT GOOGLE CALENDAR (.ICS) THẬT 100% CÓ GIỜ GIẤC & LẶP 15 TUẦN
+    function exportToICS() {
+        let events = parseFullSchedule();
+
+        if (events.length === 0) {
+            alert("Chưa thấy TKB nào trên màn hình cả bro! Bấm xếp TKB trước đã!");
             return;
         }
 
@@ -81,12 +76,16 @@
             "METHOD:PUBLISH"
         ];
 
-        classIds.forEach((id, index) => {
+        events.forEach((ev, index) => {
             icsLines.push(
                 "BEGIN:VEVENT",
-                `UID:hust-${id}-${index}@phunged.io`,
-                `SUMMARY:[HUST] Lớp HP: ${id}`,
-                `DESCRIPTION:Mã lớp đăng ký: ${id}`,
+                `UID:hust-${Date.now()}-${index}@phunged.io`,
+                `SUMMARY:${ev.summary}`,
+                `LOCATION:${ev.location}`,
+                `DESCRIPTION:${ev.description}`,
+                `DTSTART;TZID=Asia/Ho_Chi_Minh:${ev.dtStart}`,
+                `DTEND;TZID=Asia/Ho_Chi_Minh:${ev.dtEnd}`,
+                "RRULE:FREQ=WEEKLY;COUNT=15", // Lặp lại hàng tuần trong 15 tuần học kỳ
                 "END:VEVENT"
             );
         });
@@ -96,33 +95,31 @@
         const blob = new Blob([icsLines.join("\r\n")], { type: "text/calendar;charset=utf-8" });
         const link = document.createElement("a");
         link.href = window.URL.createObjectURL(blob);
-        link.download = `TKB_HUST_${Date.now()}.ics`;
+        link.download = `TKB_HUST_Chuan_${Date.now()}.ics`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
     }
 
-    // 3. COPY MÃ TKB THẬT
+    // 4. COPY MÃ TKB DẠNG SHARE CODE BẠN BÈ
     function generateShareCode() {
         let classIds = getActiveScheduleData();
-
         if (classIds.length === 0) {
             alert("Chưa có TKB nào trên màn hình cả!");
             return;
         }
 
         let shareString = btoa(JSON.stringify(classIds));
-
         navigator.clipboard.writeText(shareString).then(() => {
             let status = document.getElementById('share-status');
             if (status) {
-                status.innerText = `✓ Đã copy mã (${classIds.length} lớp: ${classIds.join(', ')})!`;
+                status.innerText = `✓ Đã copy mã (${classIds.length} lớp)!`;
                 setTimeout(() => status.innerText = "", 4000);
             }
         });
     }
 
-    // 4. SO SÁNH TKB BẠN BÈ
+    // 5. SO SÁNH TKB BẠN BÈ
     function compareWithFriend() {
         let friendCode = document.getElementById('friend-code').value.trim();
         let resDiv = document.getElementById('compare-result');
@@ -135,7 +132,6 @@
         try {
             let friendClassIds = JSON.parse(atob(friendCode));
             let myClassIds = getActiveScheduleData();
-
             let common = myClassIds.filter(id => friendClassIds.includes(id));
 
             if (common.length > 0) {
@@ -148,9 +144,3 @@
         }
     }
   </script>
-
-  <script src="u48.js"></script>
-  <script src="h3c6.js"></script>
-  <script src="i3c4.js"></script>
-</body>
-</html>
