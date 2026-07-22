@@ -57,33 +57,24 @@
   </div>
 
  <script>
-    // 1. HÀM QUÉT TOÀN BỘ MÃ LỚP (6 CHỮ SỐ) DẠNG HUST TRÊN MÀN HÌNH
+    // 1. HÀM QUÉT TẤT CẢ MÃ LỚP (6 CHỮ SỐ) ĐANG CÓ TRÊN BẢNG TKB
     function getActiveScheduleData() {
-        let textContent = document.body.innerText;
+        let bodyText = document.body.innerText;
         
-        // Quét tất cả các chuỗi 6 chữ số (Mã lớp HUST chuẩn, vd: 142110, 135678)
-        let allMatches = textContent.match(/\b\d{6}\b/g) || [];
+        // Quét tất cả các mã lớp 6 chữ số HUST (như 173054, 174172, 175515...)
+        let matches = bodyText.match(/\b\d{6}\b/g) || [];
         
-        // Loại bỏ các mã trùng lặp
-        let uniqueClassIds = [...new Set(allMatches)];
-        
-        let scheduleList = uniqueClassIds.map(id => {
-            return {
-                classId: id,
-                subjectName: `Môn có Mã Lớp ${id}`,
-                time: "Lịch học HUST"
-            };
-        });
-
-        return scheduleList;
+        // Loại bỏ mã trùng lặp
+        let uniqueClassIds = [...new Set(matches)];
+        return uniqueClassIds;
     }
 
-    // 2. XUẤT GOOGLE CALENDAR (.ICS)
+    // 2. XUẤT FILE GOOGLE CALENDAR (.ICS) THẬT
     function exportToICS() {
-        let currentSchedule = getActiveScheduleData();
+        let classIds = getActiveScheduleData();
 
-        if (currentSchedule.length === 0) {
-            alert("Mày chưa thêm môn hoặc chưa bấm 'Xếp thời khóa biểu' kìa! Thêm môn xong có TKB trên màn hình rồi bấm lại nhé!");
+        if (classIds.length === 0) {
+            alert("Chưa thấy TKB nào trên màn hình cả bro! Bấm xếp TKB trước đã!");
             return;
         }
 
@@ -95,12 +86,12 @@
             "METHOD:PUBLISH"
         ];
 
-        currentSchedule.forEach((item, index) => {
+        classIds.forEach((id, index) => {
             icsLines.push(
                 "BEGIN:VEVENT",
-                `UID:hust-${item.classId}-${index}@phunged.io`,
-                `SUMMARY:[HUST] Lớp HP: ${item.classId}`,
-                `DESCRIPTION:Mã lớp đăng ký HUST: ${item.classId}`,
+                `UID:hust-${id}-${index}@phunged.io`,
+                `SUMMARY:[HUST] Lớp HP: ${id}`,
+                `DESCRIPTION:Mã lớp đăng ký: ${id}`,
                 "END:VEVENT"
             );
         });
@@ -116,26 +107,28 @@
         document.body.removeChild(link);
     }
 
-    // 3. COPY MÃ TKB THẬT ĐỂ GỬI BẠN BÈ
+    // 3. COPY MÃ TKB THẬT (MÃ HÓA CÁC MÃ LỚP 173054, 174172...)
     function generateShareCode() {
-        let currentSchedule = getActiveScheduleData();
+        let classIds = getActiveScheduleData();
 
-        if (currentSchedule.length === 0) {
-            alert("Chưa có TKB nào trên màn hình cả! Thêm môn + Xếp TKB trước đã bro!");
+        if (classIds.length === 0) {
+            alert("Chưa chọn môn hoặc chưa xếp TKB kìa bro!");
             return;
         }
 
-        // Tạo chuỗi danh sách mã lớp ngắn gọn (vd: 142110,135678)
-        let classIds = currentSchedule.map(c => c.classId);
+        // Mã hóa mảng mã lớp thật thành chuỗi mã hóa
         let shareString = btoa(JSON.stringify(classIds));
 
         navigator.clipboard.writeText(shareString).then(() => {
-            document.getElementById('share-status').innerText = `✓ Đã copy mã (${classIds.length} lớp: ${classIds.join(', ')})!`;
-            setTimeout(() => document.getElementById('share-status').innerText = "", 4000);
+            let status = document.getElementById('share-status');
+            if (status) {
+                status.innerText = `✓ Đã copy mã (${classIds.length} lớp: ${classIds.join(', ')})!`;
+                setTimeout(() => status.innerText = "", 4000);
+            }
         });
     }
 
-    // 4. SO SÁNH MÃ LỚP VỚI BẠN BÈ
+    // 4. SO SÁNH VỚI MÃ CỦA BẠN BÈ
     function compareWithFriend() {
         let friendCode = document.getElementById('friend-code').value.trim();
         let resDiv = document.getElementById('compare-result');
@@ -147,10 +140,9 @@
 
         try {
             let friendClassIds = JSON.parse(atob(friendCode));
-            let mySchedule = getActiveScheduleData();
-            let myClassIds = mySchedule.map(c => c.classId);
+            let myClassIds = getActiveScheduleData();
 
-            // Tìm mã lớp 2 đứa cùng đăng ký
+            // Tìm các mã lớp trùng nhau
             let common = myClassIds.filter(id => friendClassIds.includes(id));
 
             if (common.length > 0) {
